@@ -409,11 +409,9 @@ int main()
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
-
-
-
-
-
+    glm::mat4 view = glm::mat4(1.0f); // view matrix initialization
+   // setting the radius variable 
+    float radius = 10.0f;
     // render loop
     while (!glfwWindowShouldClose(window))
     {
@@ -424,34 +422,23 @@ int main()
         processInput(window);
 
         ourShader.use();
+
         ourShader.setVec3("light.position", lightPos);
         ourShader.setVec3("viewPos", cameraPos);
+
+        // light properties
         glm::vec3 lightColor;
         lightColor.x = 1.0f;
         lightColor.y = 1.0f;
         lightColor.z = 1.0f;
         glm::vec3 diffuseColor = lightColor * glm::vec3(0.5f);
         glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f);
-        ourShader.setVec3("light.ambient", ambientColor);
-        ourShader.setVec3("light.diffuse", diffuseColor);
-        ourShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
-        ourShader.setVec3("material.ambient", 0.25f, 0.20725f, 0.20725f);
-        ourShader.setVec3("material.diffuse", 1.0f, 0.829f, 0.829f);
-        ourShader.setVec3("material.specular", 0.296648f, 0.296648f, 0.296648f);
-        ourShader.setFloat("material.shininess", 11.264f);
-        glm::mat4 view = glm::mat4(1.0f);
-        view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-        glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)1024 / (float)768, 0.1f, 100.0f);
-        glm::mat4 model = glm::mat4(1.0f);
-        ourShader.setMat4("projection", projection);
-        ourShader.setMat4("view", view);
-        ourShader.setMat4("model", model);
-        lightingShader.setVec3("light.position", lightPos);
-        lightingShader.setVec3("viewPos", cameraPos);
-
-        // light properties
+        lightingShader.setVec3("light.ambient", ambientColor);
+        lightingShader.setVec3("light.diffuse", diffuseColor);
+        lightingShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
 
         lightingShader.use();
+
         lightingShader.setVec3("light.position", lightPos);
         lightingShader.setVec3("viewPos", cameraPos);
         lightingShader.setVec3("light.ambient", ambientColor);
@@ -461,13 +448,14 @@ int main()
         lightingShader.setVec3("material.diffuse", 0.61424f, 0.04136f, 0.04136f);
         lightingShader.setVec3("material.specular", 0.727811f, 0.626959f, 0.626959f);
         lightingShader.setFloat("material.shininess", 76.8f);
+
+        glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp); 
+        glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)1024 / (float)768, 0.1f, 100.0f);
+        glm::mat4 model = glm::mat4(1.0f);
+ 
         lightingShader.setMat4("projection", projection);
         lightingShader.setMat4("view", view);
         lightingShader.setMat4("model", model);
-
-
-
-
 
         //cube 1 
 
