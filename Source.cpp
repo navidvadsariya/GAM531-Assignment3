@@ -23,6 +23,7 @@ void drawCube1();
 void drawCube2();
 void drawCube3();
 void drawCube4();
+void drawPlane();
 
 void applyTextureToCube1(unsigned int& texture);
 void applyTextureToCube2(unsigned int& texture);
@@ -41,9 +42,9 @@ const unsigned int screen_width = 1200;
 const unsigned int screen_height = 800;
 const GLuint NumVertices = 36;
 
-GLuint VBO1, VBO2, VBO3, VBO4;
-GLuint VAO1, VAO2, VAO3, VAO4;
-GLuint EBO1, EBO2, EBO3, EBO4;
+GLuint VBO1, VBO2, VBO3, VBO4, VBO5;
+GLuint VAO1, VAO2, VAO3, VAO4 , VAO5;
+GLuint EBO1, EBO2, EBO3, EBO4, EBO5;
 
 unsigned int texture;
 
@@ -406,6 +407,56 @@ int main()
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
 
+    float vertices5[] = {
+   -8.0f, -8.0f, -6.0f,  1.0f, 0.0f, 1.0f, 1.0f, 1.0f,// bottom left
+   8.0f, -8.0f, -6.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,// bottom right
+   8.0f, 8.0f, -6.0f, 0.0f, 0.0f, 1.0f,  0.0f, 0.0f,// top right
+   -8.0f, 8.0f, -6.0f, 1.0f, 1.0f, 0.0f,  0.0f, 1.0f,// top left
+
+   // bottom right cube-positive z
+    -8.0f, -8.0f, -5.8f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f,// bottom left
+   8.0f, -8.0f, -5.8f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,// bottom right
+   8.0f, 8.0f, -5.8f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,// top right
+  -8.0f, 8.0f, -5.8f, 1.0f, 1.0f, 0.0f,  0.0f, 1.0f// top left
+    };
+    unsigned int indices5[] = {
+        5, 4, 0,
+        1, 5, 0,
+
+        6, 5, 1,
+        2, 6, 1,
+
+        7, 6, 2,
+        3, 7, 2,
+
+        4, 7, 3,
+        0, 4, 3,
+
+        6, 7, 4,
+        5, 6, 4,
+
+        1, 0, 3,
+        2, 1, 3
+    };
+
+    glGenVertexArrays(1, &VAO5);
+    glGenBuffers(1, &VBO5);
+    glGenBuffers(1, &EBO5);
+    glBindVertexArray(VAO5);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO5);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices5), vertices5, GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO5);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices5), indices5, GL_STATIC_DRAW);
+
+    // position attribute information
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    // color attribute information
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
@@ -423,8 +474,8 @@ int main()
 
         ourShader.use();
 
-        ourShader.setVec3("light.position", lightPos);
-        ourShader.setVec3("viewPos", cameraPos);
+        lightingShader.setVec3("light.position", lightPos);
+        lightingShader.setVec3("viewPos", cameraPos);
 
         // light properties
         glm::vec3 lightColor;
@@ -439,8 +490,6 @@ int main()
 
         lightingShader.use();
 
-        lightingShader.setVec3("light.position", lightPos);
-        lightingShader.setVec3("viewPos", cameraPos);
         lightingShader.setVec3("light.ambient", ambientColor);
         lightingShader.setVec3("light.diffuse", diffuseColor);
         lightingShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
@@ -457,6 +506,7 @@ int main()
         lightingShader.setMat4("view", view);
         lightingShader.setMat4("model", model);
 
+        ourShader.use();
         //cube 1 
 
         if (rubyMat && randomRubyMat == 1) {
@@ -619,14 +669,37 @@ int main()
         ourShader.setMat4("projection", projection4);
         drawCube4();
 
+        ourShader.use();
+    
+        glm::mat4 model7 = glm::mat4(1.0f);
+        glm::mat4 projection7 = glm::mat4(1.0f);
+
+        if (randomCubeNumber == 3) {
+            model7 = glm::rotate(model7, (float)glfwGetTime(), glm::vec3(45.0f, 45.0f, 0.0f));
+
+            if (objectScale) {
+                model7 = glm::scale(model7, glm::vec3(2.5f, 2.5f, 2.5f));
+            }
+            if (objectMoveToCenter) {
+                model7 = glm::translate(model7, glm::vec3(-0.75f, -0.75f, 0.0f));
+            }
+        }
+        projection7 = glm::perspective(glm::radians(45.0f), (float)screen_width / (float)screen_height, 0.1f, 100.0f);
+
+
+        unsigned int modelLoc7 = glGetUniformLocation(ourShader.ID, "model");
+        unsigned int viewLoc7 = glGetUniformLocation(ourShader.ID, "view");
+
+        glUniformMatrix4fv(modelLoc7, 1, GL_FALSE, glm::value_ptr(model7));
+        glUniformMatrix4fv(viewLoc7, 1, GL_FALSE, &view[0][0]);
+        // Send the projection to the Shader
+        ourShader.setMat4("projection", projection7);
+        drawPlane();
+
         glm::mat4 model5 = glm::mat4(1.0f);
         glm::mat4 projection5 = glm::mat4(1.0f);
         projection5 = glm::perspective(glm::radians(45.0f), (float)screen_width / (float)screen_height, 0.1f, 100.0f);
-        ourShader.setMat4("model", model5);
-        // render the cube
-        glBindVertexArray(cubeVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-
+     
 
         // also draw the lamp object
         lightCubeShader.use();
@@ -748,6 +821,11 @@ void drawCube4()
     glDrawElements(GL_TRIANGLES, NumVertices, GL_UNSIGNED_INT, 0);
 }
 
+void drawPlane()
+{
+    glBindVertexArray(VAO5); //Use the appropriate VAO
+    glDrawElements(GL_TRIANGLES, NumVertices, GL_UNSIGNED_INT, 0);
+}
 // glfw: callback called when the mouse moves
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
