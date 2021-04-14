@@ -123,12 +123,20 @@ int main()
         return -1;
     }
     glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+    glEnable(GL_STENCIL_TEST);
+    glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+    glStencilOp(
+        GL_KEEP,  // Stencil Action if stencil test fails. 
+        GL_KEEP,  // Stencil Action if stencil test passes but depth test fails. 
+        GL_REPLACE); // Stencil Action if both stencil and buffer tests pass.
+
     // build and compile our shader program
 
     Shader ourShader("lightingmap.vs", "lightingmap.fs"); // you can name your shader files however you like
     Shader lightCubeShader("lightsource.vs", "lightsource.fs");
     Shader lightingShader("materials.vs", "materials.fs");
-    Shader Texture("Texture.vs", "Texture.fs");
+    Shader Texture("lightingmap.vs", "Texture.fs");
 
     float light[] = {
      -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
@@ -508,7 +516,7 @@ int main()
         lightingShader.setFloat("material.shininess", 76.8f);
 
         glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-        glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)1024 / (float)768, 0.1f, 100.0f);
+        glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)screen_width / (float)screen_height, 0.1f, 100.0f);
         glm::mat4 model = glm::mat4(1.0f);
 
         lightingShader.setMat4("projection", projection);
@@ -530,7 +538,7 @@ int main()
         Texture.setMat4("projection", projection);
         Texture.setMat4("view", view);
         Texture.setMat4("model", model);
-
+        ourShader.use();
         //cube 1 
         if (rubyMat && randomRubyMat == 1) {
             lightingShader.use();
@@ -538,6 +546,8 @@ int main()
         else {
             ourShader.use();
         }
+
+        glActiveTexture(GL_TEXTURE0);
         if (changeTexture) {
             applySecondTextureToCube1(texture);
         }
@@ -558,7 +568,7 @@ int main()
                 model1 = glm::scale(model1, glm::vec3(2.5f, 2.5f, 2.5f));
             }
             if (objectMoveToCenter) {
-                model1 = glm::translate(model1, glm::vec3(0.75f, -0.75f, 0.0f));
+                model1 = glm::translate(model1, glm::vec3(0.40f, -0.40f, 0.0f));
             }
         }
 
@@ -583,6 +593,8 @@ int main()
         else {
             ourShader.use();
         }
+
+        glActiveTexture(GL_TEXTURE0);
         if (changeTexture) {
             applySecondTextureToCube2(texture);
         }
@@ -604,7 +616,7 @@ int main()
                 model2 = glm::scale(model2, glm::vec3(2.5f, 2.5f, 2.5f));
             }
             if (objectMoveToCenter) {
-                model2 = glm::translate(model2, glm::vec3(0.75f, 0.75f, 0.0f));
+                model2 = glm::translate(model2, glm::vec3(0.40f, 0.40f, 0.0f));
             }
         }
 
@@ -628,6 +640,8 @@ int main()
         else {
             ourShader.use();
         }
+
+        glActiveTexture(GL_TEXTURE0);
         if (changeTexture) {
             applySecondTextureToCube3(texture);
         }
@@ -649,7 +663,7 @@ int main()
                 model3 = glm::scale(model3, glm::vec3(2.5f, 2.5f, 2.5f));
             }
             if (objectMoveToCenter) {
-                model3 = glm::translate(model3, glm::vec3(-0.75f, -0.75f, 0.0f));
+                model3 = glm::translate(model3, glm::vec3(-0.40f, -0.40f, 0.0f));
             }
         }
         projection3 = glm::perspective(glm::radians(45.0f), (float)screen_width / (float)screen_height, 0.1f, 100.0f);
@@ -672,6 +686,8 @@ int main()
         else {
             ourShader.use();
         }
+
+        glActiveTexture(GL_TEXTURE0);
         if (changeTexture) {
             applySecondTextureToCube4(texture);
         }
@@ -693,7 +709,7 @@ int main()
                 model4 = glm::scale(model4, glm::vec3(2.5f, 2.5f, 2.5f));
             }
             if (objectMoveToCenter) {
-                model4 = glm::translate(model4, glm::vec3(-0.75f, 0.75f, 0.0f));
+                model4 = glm::translate(model4, glm::vec3(-0.40f, 0.40f, 0.0f));
             }
         }
         projection4 = glm::perspective(glm::radians(45.0f), (float)screen_width / (float)screen_height, 0.1f, 100.0f);
@@ -713,16 +729,6 @@ int main()
         glm::mat4 model7 = glm::mat4(1.0f);
         glm::mat4 projection7 = glm::mat4(1.0f);
 
-        if (randomCubeNumber == 3) {
-            model7 = glm::rotate(model7, (float)glfwGetTime(), glm::vec3(45.0f, 45.0f, 0.0f));
-
-            if (objectScale) {
-                model7 = glm::scale(model7, glm::vec3(2.5f, 2.5f, 2.5f));
-            }
-            if (objectMoveToCenter) {
-                model7 = glm::translate(model7, glm::vec3(-0.75f, -0.75f, 0.0f));
-            }
-        }
         projection7 = glm::perspective(glm::radians(45.0f), (float)screen_width / (float)screen_height, 0.1f, 100.0f);
 
 
@@ -764,7 +770,7 @@ void render()
 {
     static const float black[] = { 0.0f, 0.0f, 0.0f, 0.0f };
     glClearBufferfv(GL_COLOR, 0, black);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT); // Stencil Buffer
     glBindTexture(GL_TEXTURE_2D, texture);
 }
 
@@ -904,7 +910,6 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 void applyTextureToCube1(unsigned int& texture)
 {
     glGenTextures(1, &texture);
-    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture); // the texture object is applied with all the texture operations
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set GL_REPEAT as the wrapping method)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -912,12 +917,12 @@ void applyTextureToCube1(unsigned int& texture)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     // load image (mybox.png) and create the texture 
-
-    unsigned char* data = stbi_load("assets/1.jpg", &width1, &height1, &nrChannels1, 0);
+    int width, height, nrChannels;
+    unsigned char* data = stbi_load("assets/1.jpg", &width, &height, &nrChannels, 0);
     // Generate mipmaps
     if (data)
     {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width1, height1, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
 
     }
@@ -931,7 +936,6 @@ void applyTextureToCube1(unsigned int& texture)
 void applyTextureToCube2(unsigned int& texture)
 {
     glGenTextures(1, &texture);
-    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture); // the texture object is applied with all the texture operations
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set GL_REPEAT as the wrapping method)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -957,7 +961,6 @@ void applyTextureToCube2(unsigned int& texture)
 void applyTextureToCube3(unsigned int& texture)
 {
     glGenTextures(1, &texture);
-    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture); // the texture object is applied with all the texture operations
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set GL_REPEAT as the wrapping method)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -983,7 +986,6 @@ void applyTextureToCube3(unsigned int& texture)
 void applyTextureToCube4(unsigned int& texture)
 {
     glGenTextures(1, &texture);
-    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture); // the texture object is applied with all the texture operations
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set GL_REPEAT as the wrapping method)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -1009,7 +1011,6 @@ void applyTextureToCube4(unsigned int& texture)
 void applySecondTextureToCube1(unsigned int& texture)
 {
     glGenTextures(1, &texture);
-    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture); // the texture object is applied with all the texture operations
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set GL_REPEAT as the wrapping method)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -1034,7 +1035,6 @@ void applySecondTextureToCube1(unsigned int& texture)
 void applySecondTextureToCube2(unsigned int& texture)
 {
     glGenTextures(1, &texture);
-    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture); // the texture object is applied with all the texture operations
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set GL_REPEAT as the wrapping method)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -1059,7 +1059,6 @@ void applySecondTextureToCube2(unsigned int& texture)
 void applySecondTextureToCube3(unsigned int& texture)
 {
     glGenTextures(1, &texture);
-    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture); // the texture object is applied with all the texture operations
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set GL_REPEAT as the wrapping method)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -1084,7 +1083,6 @@ void applySecondTextureToCube3(unsigned int& texture)
 void applySecondTextureToCube4(unsigned int& texture)
 {
     glGenTextures(1, &texture);
-    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture); // the texture object is applied with all the texture operations
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set GL_REPEAT as the wrapping method)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
