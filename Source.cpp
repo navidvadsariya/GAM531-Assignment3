@@ -18,6 +18,7 @@ void processInput(GLFWwindow* window);
 void init(void);
 void render();
 
+void applySecondTexture();
 
 void drawCube1();
 void drawCube2();
@@ -35,6 +36,7 @@ void applySecondTextureToCube2(unsigned int& texture);
 void applySecondTextureToCube3(unsigned int& texture);
 void applySecondTextureToCube4(unsigned int& texture);
 
+
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 
 // variables
@@ -43,10 +45,12 @@ const unsigned int screen_height = 800;
 const GLuint NumVertices = 36;
 
 GLuint VBO1, VBO2, VBO3, VBO4, VBO5;
-GLuint VAO1, VAO2, VAO3, VAO4 , VAO5;
+GLuint VAO1, VAO2, VAO3, VAO4, VAO5;
 GLuint EBO1, EBO2, EBO3, EBO4, EBO5;
+int width1, height1, nrChannels1;
 
 unsigned int texture;
+unsigned int texture2, texture3;
 
 // camera
 glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
@@ -73,7 +77,8 @@ bool isCubeRotating = false;        //processInput functions sets this value tru
 int randomCubeNumber = -1;          //stores cube number from 1-4
 
 bool changeTexture = false;
-
+bool applyNewT = false;
+int randomCubeForT = -1;
 //light
 unsigned int lightCubeVAO, lightCubeVBO;
 unsigned int cubeVAO;
@@ -123,6 +128,7 @@ int main()
     Shader ourShader("lightingmap.vs", "lightingmap.fs"); // you can name your shader files however you like
     Shader lightCubeShader("lightsource.vs", "lightsource.fs");
     Shader lightingShader("materials.vs", "materials.fs");
+    Shader Texture("Texture.vs", "Texture.fs");
 
     float light[] = {
      -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
@@ -408,10 +414,10 @@ int main()
     glEnableVertexAttribArray(2);
 
     float vertices5[] = {
-   -8.0f, -8.0f, -6.0f,  1.0f, 0.0f, 1.0f, 1.0f, 1.0f,// bottom left
-   8.0f, -8.0f, -6.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,// bottom right
-   8.0f, 8.0f, -6.0f, 0.0f, 0.0f, 1.0f,  0.0f, 0.0f,// top right
-   -8.0f, 8.0f, -6.0f, 1.0f, 1.0f, 0.0f,  0.0f, 1.0f,// top left
+   -8.0f, -8.0f, -6.0f,  1.0f, 1.0f, 1.0f, 1.0f, 1.0f,// bottom left
+   8.0f, -8.0f, -6.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,// bottom right
+   8.0f, 8.0f, -6.0f, 1.0f, 1.0f, 1.0f,  0.0f, 0.0f,// top right
+   -8.0f, 8.0f, -6.0f, 1.0f, 1.0f, 1.0f,  0.0f, 1.0f,// top left
 
    // bottom right cube-positive z
     -8.0f, -8.0f, -5.8f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f,// bottom left
@@ -460,12 +466,15 @@ int main()
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
-    glm::mat4 view = glm::mat4(1.0f); // view matrix initialization
-   // setting the radius variable 
-    float radius = 10.0f;
+    // send the data to each sampler 
+    Texture.use(); // activate the shader
+    // pass the uniform variables
+    glUniform1i(glGetUniformLocation(Texture.ID, "texture1"), 0);
+    Texture.setInt("texture2", 1);
     // render loop
     while (!glfwWindowShouldClose(window))
     {
+
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
@@ -498,17 +507,31 @@ int main()
         lightingShader.setVec3("material.specular", 0.727811f, 0.626959f, 0.626959f);
         lightingShader.setFloat("material.shininess", 76.8f);
 
-        glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp); 
+        glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
         glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)1024 / (float)768, 0.1f, 100.0f);
         glm::mat4 model = glm::mat4(1.0f);
- 
+
         lightingShader.setMat4("projection", projection);
         lightingShader.setMat4("view", view);
         lightingShader.setMat4("model", model);
 
-        ourShader.use();
-        //cube 1 
 
+        Texture.use();
+        Texture.setVec3("light.position", lightPos);
+        Texture.setVec3("viewPos", cameraPos);
+
+        // light properties
+
+        Texture.setVec3("light.ambient", ambientColor);
+        Texture.setVec3("light.diffuse", diffuseColor);
+        Texture.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
+
+
+        Texture.setMat4("projection", projection);
+        Texture.setMat4("view", view);
+        Texture.setMat4("model", model);
+
+        //cube 1 
         if (rubyMat && randomRubyMat == 1) {
             lightingShader.use();
         }
@@ -521,7 +544,11 @@ int main()
         else {
             applyTextureToCube1(texture);
         }
-
+        if (randomCubeForT == 1 && applyNewT) {
+            Texture.use();
+            applyTextureToCube1(texture);
+            applySecondTexture();
+        }
         glm::mat4 model1 = glm::mat4(1.0f);
         glm::mat4 projection1 = glm::mat4(1.0f);
         if (randomCubeNumber == 1) {
@@ -562,7 +589,11 @@ int main()
         else {
             applyTextureToCube2(texture);
         }
-
+        if (randomCubeForT == 2 && applyNewT) {
+            Texture.use();
+            applyTextureToCube2(texture);
+            applySecondTexture();
+        }
         glm::mat4 model2 = glm::mat4(1.0f);
         glm::mat4 projection2 = glm::mat4(1.0f);
 
@@ -603,7 +634,11 @@ int main()
         else {
             applyTextureToCube3(texture);
         }
-
+        if (randomCubeForT == 3 && applyNewT) {
+            Texture.use();
+            applyTextureToCube3(texture);
+            applySecondTexture();
+        }
         glm::mat4 model3 = glm::mat4(1.0f);
         glm::mat4 projection3 = glm::mat4(1.0f);
 
@@ -643,7 +678,11 @@ int main()
         else {
             applyTextureToCube4(texture);
         }
-
+        if (randomCubeForT == 4 && applyNewT) {
+            Texture.use();
+            applyTextureToCube4(texture);
+            applySecondTexture();
+        }
         glm::mat4 model4 = glm::mat4(1.0f);
         glm::mat4 projection4 = glm::mat4(1.0f);
 
@@ -670,7 +709,7 @@ int main()
         drawCube4();
 
         ourShader.use();
-    
+
         glm::mat4 model7 = glm::mat4(1.0f);
         glm::mat4 projection7 = glm::mat4(1.0f);
 
@@ -699,7 +738,7 @@ int main()
         glm::mat4 model5 = glm::mat4(1.0f);
         glm::mat4 projection5 = glm::mat4(1.0f);
         projection5 = glm::perspective(glm::radians(45.0f), (float)screen_width / (float)screen_height, 0.1f, 100.0f);
-     
+
 
         // also draw the lamp object
         lightCubeShader.use();
@@ -769,7 +808,8 @@ void processInput(GLFWwindow* window)
         randomRubyMat = rand() % 4 + 1; //generates a random number from 1-4
     }
     if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS) {
-        changeTexture = false;
+        applyNewT = true;
+        randomCubeForT = rand() % 4 + 1; //generates a random number from 1-4
     }
     // increate the camera speed using the deltaTime
     float cameraSpeed = 3 * deltaTime;
@@ -864,6 +904,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 void applyTextureToCube1(unsigned int& texture)
 {
     glGenTextures(1, &texture);
+    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture); // the texture object is applied with all the texture operations
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set GL_REPEAT as the wrapping method)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -871,12 +912,12 @@ void applyTextureToCube1(unsigned int& texture)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     // load image (mybox.png) and create the texture 
-    int width, height, nrChannels;
-    unsigned char* data = stbi_load("assets/1.jpg", &width, &height, &nrChannels, 0);
+
+    unsigned char* data = stbi_load("assets/1.jpg", &width1, &height1, &nrChannels1, 0);
     // Generate mipmaps
     if (data)
     {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width1, height1, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
 
     }
@@ -890,6 +931,7 @@ void applyTextureToCube1(unsigned int& texture)
 void applyTextureToCube2(unsigned int& texture)
 {
     glGenTextures(1, &texture);
+    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture); // the texture object is applied with all the texture operations
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set GL_REPEAT as the wrapping method)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -915,6 +957,7 @@ void applyTextureToCube2(unsigned int& texture)
 void applyTextureToCube3(unsigned int& texture)
 {
     glGenTextures(1, &texture);
+    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture); // the texture object is applied with all the texture operations
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set GL_REPEAT as the wrapping method)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -940,6 +983,7 @@ void applyTextureToCube3(unsigned int& texture)
 void applyTextureToCube4(unsigned int& texture)
 {
     glGenTextures(1, &texture);
+    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture); // the texture object is applied with all the texture operations
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set GL_REPEAT as the wrapping method)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -965,6 +1009,7 @@ void applyTextureToCube4(unsigned int& texture)
 void applySecondTextureToCube1(unsigned int& texture)
 {
     glGenTextures(1, &texture);
+    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture); // the texture object is applied with all the texture operations
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set GL_REPEAT as the wrapping method)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -989,6 +1034,7 @@ void applySecondTextureToCube1(unsigned int& texture)
 void applySecondTextureToCube2(unsigned int& texture)
 {
     glGenTextures(1, &texture);
+    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture); // the texture object is applied with all the texture operations
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set GL_REPEAT as the wrapping method)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -1013,6 +1059,7 @@ void applySecondTextureToCube2(unsigned int& texture)
 void applySecondTextureToCube3(unsigned int& texture)
 {
     glGenTextures(1, &texture);
+    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture); // the texture object is applied with all the texture operations
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set GL_REPEAT as the wrapping method)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -1037,6 +1084,7 @@ void applySecondTextureToCube3(unsigned int& texture)
 void applySecondTextureToCube4(unsigned int& texture)
 {
     glGenTextures(1, &texture);
+    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture); // the texture object is applied with all the texture operations
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set GL_REPEAT as the wrapping method)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -1057,4 +1105,30 @@ void applySecondTextureToCube4(unsigned int& texture)
         std::cout << "Failed to load texture" << std::endl;
     }
     stbi_image_free(data);
+}
+void applySecondTexture()
+{
+    glGenTextures(1, &texture2);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, texture2);
+    // texture wrapping params
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set wrapping to GL_REPEAR
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    // filtering params
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // load image (smilie.png) and create the texture 
+
+    unsigned char* data1 = stbi_load("assets/smilie.png", &width1, &height1, &nrChannels1, 0);
+    if (data1)
+    {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width1, height1, 0, GL_RGBA, GL_UNSIGNED_BYTE, data1);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    else
+    {
+        std::cout << "Failed to load texture" << std::endl;
+    }
+    stbi_image_free(data1);
 }
