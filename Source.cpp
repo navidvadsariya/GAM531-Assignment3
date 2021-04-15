@@ -137,6 +137,8 @@ int main()
     Shader lightCubeShader("lightsource.vs", "lightsource.fs");
     Shader lightingShader("materials.vs", "materials.fs");
     Shader Texture("lightingmap.vs", "Texture.fs");
+    Shader shader("stencil.vs", "stencil.fs");
+    Shader shaderSingleColor("stencil.vs", "stencilsinglecolor.fs");
 
     float light[] = {
      -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
@@ -479,6 +481,8 @@ int main()
     // pass the uniform variables
     glUniform1i(glGetUniformLocation(Texture.ID, "texture1"), 0);
     Texture.setInt("texture2", 1);
+
+    shader.use();
     // render loop
     while (!glfwWindowShouldClose(window))
     {
@@ -489,6 +493,26 @@ int main()
 
         processInput(window);
 
+        shaderSingleColor.use();
+        glm::mat4 model11 = glm::mat4(1.0f);
+        glm::mat4 view11 = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+        glm::mat4 projection11 = glm::perspective(glm::radians(45.0f), (float)screen_width / (float)screen_height, 0.1f, 100.0f);
+        shaderSingleColor.setMat4("view", view11);
+        shaderSingleColor.setMat4("projection", projection11);
+
+
+        shader.use();
+        shader.setMat4("view", view11);
+        shader.setMat4("projection", projection11);
+
+        glStencilFunc(
+            GL_ALWAYS, // Comparison to referenced and current stencil value
+            1,         // The referenced value in this case is 1. Try to set it to 0
+            0xFF);     // bitwise AND with referenced and current stencil value
+
+        glStencilMask(0xFF);
+        glStencilFunc(GL_ALWAYS, 0, 0xFF);
+        glEnable(GL_DEPTH_TEST);
         ourShader.use();
 
         lightingShader.setVec3("light.position", lightPos);
